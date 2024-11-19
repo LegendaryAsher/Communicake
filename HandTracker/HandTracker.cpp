@@ -4,7 +4,7 @@
 HandTracker::HandTracker()
     : SENSIB(20), MAX_ANGLE(90), depth_threshold(10), fingertip_to_centroid_distance(100),
     hmin(0), smin(0), vmin(82), hmax(255), smax(36), vmax(255), mode(0),
-    width(300), height(300), roi(300, 70, width, height), number_of_fingers(0), isHsvWindowOpen(false) {} //default constructor
+    width(300), height(300), roi(300, 70, width, height), number_of_fingers(0), isHsvWindowOpen(false){} //default constructor
 
 cv::Rect HandTracker::currentRoi() {
     return roi;
@@ -111,10 +111,11 @@ void HandTracker::binaryMode(cv::Mat& frame) {
         cv::absdiff(frame, bg, frame);
     }
 
-    cv::threshold(frame, frame, SENSIB, 255, cv::THRESH_BINARY);
+    cv::threshold(frame, frame, SENSIB, 255, 0);
 
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
     cv::morphologyEx(frame, frame, cv::MORPH_OPEN, kernel); //erosion followed by dilate
+
 }
 
 void HandTracker::hsvMode(cv::Mat& frame) {
@@ -122,9 +123,15 @@ void HandTracker::hsvMode(cv::Mat& frame) {
     cv::inRange(frame, cv::Scalar(hmin, smin, vmin), cv::Scalar(hmax, smax, vmax), frame);
 }
 
+void HandTracker::mog2BackgroundSubtractor(cv::Mat& frame) {
+    cv::Ptr<cv::BackgroundSubtractor> pBackSub;
+    pBackSub = cv::createBackgroundSubtractorMOG2();
+    pBackSub->apply(frame, frame, 0.5);
+}
+
 void HandTracker::controlTrackbars() {
     cv::namedWindow("Controls", cv::WINDOW_AUTOSIZE);
-    cv::createTrackbar("Mode", "Controls", &mode, 1);
+    cv::createTrackbar("Mode", "Controls", &mode, 2);
     cv::createTrackbar("Sensitivity", "Controls", &SENSIB, 255);
     cv::createTrackbar("Depth Threshold", "Controls", &depth_threshold, 255);
     cv::createTrackbar("MAX ANGLE", "Controls", &MAX_ANGLE, 255);
@@ -170,12 +177,18 @@ void HandTracker::processFrame(cv::Mat& frame) {
     mask = mask(roi);
     mask.copyTo(drawing);
 
-    if (mode == 0) {
+    if (mode == 0) { //background subtraction
         binaryMode(mask);
     }
-    else if(mode == 1) {
+    else if(mode == 1) { //hsv color space
         hsvMode(mask);
     } 
+    else if (mode == 2) { //hybrid mode
+        cv::Mat temp = mask;
+        binaryMode(mask);
+        hsvMode(temp);
+        cv::addWeighted(mask, 0.5, temp, 1 - 0.5, 0.5, mask);
+    }
 
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;

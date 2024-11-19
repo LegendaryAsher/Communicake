@@ -32,7 +32,7 @@ int main() {
     //after resetting background the dimension will match then absdiff will always be called
 
     tracker.setBackground(frame);
-    
+
     while (true) {
         // Clamp trackbar values to valid ranges
         x = std::max(0, std::min(x, frameWidth - 1));
@@ -55,7 +55,7 @@ int main() {
         if (frame.empty()) break;
         cv::flip(frame, frame, 1);
         tracker.processFrame(frame);
-
+        
         int key = cv::waitKey(1);
         if (key == 27) break; // ESC to exit
         if (key == 98) {    // 'b' to update background  
