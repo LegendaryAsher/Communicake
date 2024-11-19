@@ -226,7 +226,7 @@ void HandTracker::processFrame(cv::Mat& frame) {
                 toPut = "Well Hello there";
                 break;
             case 0:
-                toPut = "Fisting huh!";
+                toPut = "A Fist?";
                 break;
             }
             cv::putText(frame, toPut, cv::Point(100, 70), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 2, 2));
