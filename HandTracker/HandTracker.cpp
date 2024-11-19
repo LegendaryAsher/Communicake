@@ -123,12 +123,6 @@ void HandTracker::hsvMode(cv::Mat& frame) {
     cv::inRange(frame, cv::Scalar(hmin, smin, vmin), cv::Scalar(hmax, smax, vmax), frame);
 }
 
-void HandTracker::mog2BackgroundSubtractor(cv::Mat& frame) {
-    cv::Ptr<cv::BackgroundSubtractor> pBackSub;
-    pBackSub = cv::createBackgroundSubtractorMOG2();
-    pBackSub->apply(frame, frame, 0.5);
-}
-
 void HandTracker::controlTrackbars() {
     cv::namedWindow("Controls", cv::WINDOW_AUTOSIZE);
     cv::createTrackbar("Mode", "Controls", &mode, 2);

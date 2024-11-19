@@ -36,7 +36,6 @@ private:
     // Internal methods: are to used inside other function of the class(inside the class)
     void binaryMode(cv::Mat& frame);
     void hsvMode(cv::Mat& frame);
-    void mog2BackgroundSubtractor(cv::Mat& frame);
     void findFingertips(std::vector<cv::Point>& points, std::vector<cv::Point> hull,
         cv::Mat& frame, cv::Point centroid);
     cv::Point getCentroid(const std::vector<cv::Point>& contour);
