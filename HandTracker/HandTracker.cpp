@@ -2,9 +2,9 @@
 #include "Utilities.hpp"
 
 HandTracker::HandTracker()
-    : SENSIB(20), MAX_ANGLE(90), depth_threshold(10), fingertip_to_centroid_distance(65),
+    : SENSIB(20), fingertip_to_centroid_distance(100),
     hmin(0), smin(0), vmin(82), hmax(255), smax(36), vmax(255), mode(0),
-    width(300), height(300), roi(300, 70, width, height), number_of_fingers(0) {} //default constructor
+    width(300), height(300), roi(300, 70, width, height), number_of_fingers(0), isHsvWindowOpen(false) {} //default constructor
 
 cv::Rect HandTracker::currentRoi() {
     return roi;
@@ -57,6 +57,7 @@ void HandTracker::setMode(int newMode) {
 int HandTracker::getMode() {
     return mode;
 }
+
 void HandTracker::binaryMode(cv::Mat& frame) {
     cv::Mat bg;
     background.copyTo(bg);
@@ -66,14 +67,16 @@ void HandTracker::binaryMode(cv::Mat& frame) {
     cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0);
     cv::GaussianBlur(bg, bg, cv::Size(5, 5), 0);
 
-    if (frame.cols == bg.cols && frame.rows == bg.rows) {
+    if (frame.cols == bg.cols && frame.rows == bg.rows) //checking dimensions match or not
+    {
         cv::absdiff(frame, bg, frame);
     }
 
     cv::threshold(frame, frame, SENSIB, 255, cv::THRESH_BINARY);
 
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
-    cv::morphologyEx(frame, frame, cv::MORPH_OPEN, kernel);
+    cv::morphologyEx(frame, frame, cv::MORPH_OPEN, kernel); //erosion followed by dilate
+
 }
 
 void HandTracker::hsvMode(cv::Mat& frame) {
@@ -82,26 +85,35 @@ void HandTracker::hsvMode(cv::Mat& frame) {
 }
 
 void HandTracker::controlTrackbars() {
-    cv::namedWindow("Controls", cv::WINDOW_AUTOSIZE);
-    cv::createTrackbar("Mode", "Controls", &mode, 2);
-    cv::createTrackbar("Sensitivity", "Controls", &SENSIB, 255);
-    cv::createTrackbar("Depth Threshold", "Controls", &depth_threshold, 255);
-    cv::createTrackbar("MAX ANGLE", "Controls", &MAX_ANGLE, 255);
-    cv::createTrackbar("Fingertip Distance", "Controls", &fingertip_to_centroid_distance, 255);
-
-    //if(HandTracker::getMode() == 1)
+    cv::namedWindow("Controls", cv::WINDOW_NORMAL);
+    cv::resizeWindow("Controls", 300, 70);
+    cv::createTrackbar("Mode", "Controls", &mode, 1);
+    cv::createTrackbar("Sens", "Controls", &SENSIB, 255);
+    cv::createTrackbar("Finger D", "Controls", &fingertip_to_centroid_distance, 150);
 }
 
 void HandTracker::hsvTrackbars() {
     //Trackers for hsv color detection
-    cv::namedWindow("HSV VALUES", cv::WINDOW_AUTOSIZE);
-    cv::createTrackbar("HMIN", "HSV VALUES", &hmin, 255);
-    cv::createTrackbar("SMIN", "HSV VALUES", &smin, 255);
-    cv::createTrackbar("VMIN", "HSV VALUES", &vmin, 255);
-    cv::createTrackbar("HMAX", "HSV VALUES", &hmax, 255);
-    cv::createTrackbar("SMAX", "HSV VALUES", &smax, 255);
-    cv::createTrackbar("VMAX", "HSV VALUES", &vmax, 255);
-    
+    if (!isHsvWindowOpen)
+    {
+        cv::namedWindow("HSV VALUES", cv::WINDOW_AUTOSIZE);
+        cv::createTrackbar("HMIN", "HSV VALUES", &hmin, 255);
+        cv::createTrackbar("SMIN", "HSV VALUES", &smin, 255);
+        cv::createTrackbar("VMIN", "HSV VALUES", &vmin, 255);
+        cv::createTrackbar("HMAX", "HSV VALUES", &hmax, 255);
+        cv::createTrackbar("SMAX", "HSV VALUES", &smax, 255);
+        cv::createTrackbar("VMAX", "HSV VALUES", &vmax, 255);
+
+        isHsvWindowOpen = true;
+    }
+}
+
+bool HandTracker::currentHsvWindow() {
+    return isHsvWindowOpen;
+}
+
+void HandTracker::changeHsvWindow(bool a) {
+    isHsvWindowOpen = a;
 }
 
 void HandTracker::set_number_of_fingertips(int fingers) {
@@ -111,27 +123,19 @@ void HandTracker::set_number_of_fingertips(int fingers) {
 int HandTracker::get_number_of_fingertips() {
     return number_of_fingers;
 }
-void HandTracker::mog2Mode(cv::Mat& im) {
-    cv::Ptr< cv::BackgroundSubtractor> pMOG2;
-    pMOG2 = cv::createBackgroundSubtractorMOG2();
 
-    pMOG2->apply(im, im);
-}
 void HandTracker::processFrame(cv::Mat& frame) {
     cv::Mat mask, drawing;
-
+    std::string toPut = "";
     frame.copyTo(mask);
     mask = mask(roi);
     mask.copyTo(drawing);
 
-    if (mode == 0) {
+    if (mode == 0) { //background subtraction
         binaryMode(mask);
     }
-    else if (mode == 1) {
+    else if (mode == 1) { //hsv color space
         hsvMode(mask);
-    }
-    else {
-        mog2Mode(mask);
     }
 
     std::vector<std::vector<cv::Point>> contours;
@@ -144,12 +148,12 @@ void HandTracker::processFrame(cv::Mat& frame) {
 
     int largestContourIndex = largestContour(contours);
     if (largestContourIndex != -1) {
-        cv::drawContours(drawing, contours, largestContourIndex, cv::Scalar(0, 0, 255), 1);  // draws outline (contour) in red (hand)
+        cv::drawContours(drawing, contours, largestContourIndex, cv::Scalar(0, 0, 255), 1);  // draws outlines (contours) in red (hand)
 
         std::vector< cv::Point > hull;
         cv::convexHull(cv::Mat(contours[largestContourIndex]), hull, false);   // saves the 'boundary' points of the contour without any inward dents to vector hull
         if (!hull.empty()) {
-            //std::vector<std::vector<cv::Point>>{hull} equivalent to std::vector<std::vector<cv::Point>> hulls = {hull0, hull1, hull2, ..} where hulli is an vector of points
+            // std::vector<std::vector<cv::Point>>{hull} equivalent to std::vector<std::vector<cv::Point>> hulls = {hull0, hull1, hull2, ..} where hulli is an vector of points
             cv::drawContours(drawing, std::vector<std::vector<cv::Point>>{hull}, -1, cv::Scalar(0, 215, 50), 2);
 
             cv::Point centroid = getCentroid(contours[largestContourIndex]);
@@ -159,6 +163,29 @@ void HandTracker::processFrame(cv::Mat& frame) {
             //finding fingertips point and pusing it into fingertips vector and drawing them and does some stuff ^_^
             findFingertips(fingertips, hull, drawing, centroid);
             set_number_of_fingertips(fingertips.size());
+            switch (fingertips.size()) {
+            case 1:
+                toPut = "One";
+                break;
+            case 2:
+                toPut = "Peace!/Two";
+                break;
+            case 3:
+                toPut = "Three";
+                break;
+            case 4:
+                toPut = "Four";
+                break;
+            case 5:
+                toPut = "Hello";
+                break;
+            case 0:
+                toPut = "Fist";
+                break;
+            default:
+                return;
+            }
+            cv::putText(frame, toPut, cv::Point(100, 70), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 2, 2), 4);
         }
     }
     cv::imshow("Mask", mask);

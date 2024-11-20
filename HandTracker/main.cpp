@@ -15,8 +15,6 @@ int main() {
 
     //creating trackers for thresholding controls and hsv values controls
     tracker.controlTrackbars();
-    tracker.hsvTrackbars();
-
     cam >> frame;
     cv::flip(frame, frame, 1);
     int frameWidth = frame.cols;
@@ -28,13 +26,7 @@ int main() {
     cv::createTrackbar("Y", "ROI Controls", &y, 1000);
     cv::createTrackbar("WIDTH", "ROI Controls", &w, 1000);
     cv::createTrackbar("HEIGHT", "ROI Controls", &h, 1000);
-    //after change roi controls, do press b to reset background because the background has dimension of 
-    //previous roi, so absdiff function will throw an error when dimension do not match
-    //hence i've only called the function absdiff in binaryMode only when dimension match
-    //after resetting background the dimension will match then absdiff will always be called
-
     tracker.setBackground(frame);
-
     while (true) {
         // Clamp trackbar values to valid ranges
         x = std::max(0, std::min(x, frameWidth - 1));
@@ -42,6 +34,16 @@ int main() {
         w = std::max(1, std::min(w, frameWidth - x));
         h = std::max(1, std::min(h, frameHeight - y));
         tracker.changeRoi(x, y, w, h);
+
+        if (tracker.getMode() == 1) {
+            tracker.hsvTrackbars();
+        }
+        else {
+            if (tracker.currentHsvWindow()) {
+                cv::destroyWindow("HSV VALUES");
+                tracker.changeHsvWindow(false);
+            }
+        }
 
         cam >> frame;
         if (frame.empty()) break;
@@ -59,19 +61,10 @@ int main() {
         if (key == 109) { //'m' to toggle mode
             if (tracker.getMode() == 0) {
                 tracker.setMode(1);
-                tracker.hsvTrackbars();
             }
-            else if (tracker.getMode() == 1) {
+            else {
                 tracker.setMode(0);
-                cv::destroyWindow("HSV VALUES");
             }
-        }
-        if (key == 114) { //'r' to get current roi dimensions
-            cv::Rect roi = tracker.currentRoi();
-            std::cout << "X: " << roi.x << std::endl;
-            std::cout << "Y: " << roi.y << std::endl;
-            std::cout << "Width: " << roi.width << std::endl;
-            std::cout << "Height: " << roi.height << std::endl;
         }
     }
     std::cout << tracker.get_number_of_fingertips() << std::endl;

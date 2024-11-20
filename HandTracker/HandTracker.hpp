@@ -26,7 +26,7 @@ public:
     int get_number_of_fingertips();
     int getMode();
 private:
-    int SENSIB, MAX_ANGLE, depth_threshold, fingertip_to_centroid_distance;
+    int SENSIB, fingertip_to_centroid_distance;
     int hmin, smin, vmin, hmax, smax, vmax, mode, number_of_fingers;
     int width, height; //of roi
     bool isHsvWindowOpen;
@@ -39,7 +39,6 @@ private:
     void findFingertips(std::vector<cv::Point>& points, std::vector<cv::Point> hull,
         cv::Mat& frame, cv::Point centroid);
     cv::Point getCentroid(const std::vector<cv::Point>& contour);
-    void drawDefects(const std::vector<cv::Point> contour, cv::Mat& frame);
 };
 
 #endif // HAND_TRACKER_HPP
