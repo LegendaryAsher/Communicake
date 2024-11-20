@@ -21,13 +21,24 @@ int main() {
     int frameHeight = frame.rows;
 
     //ROI Controls
-    cv::namedWindow("ROI Controls", cv::WINDOW_AUTOSIZE);
-    cv::createTrackbar("X", "ROI Controls", &x, 1000);
-    cv::createTrackbar("Y", "ROI Controls", &y, 1000);
-    cv::createTrackbar("WIDTH", "ROI Controls", &w, 1000);
-    cv::createTrackbar("HEIGHT", "ROI Controls", &h, 1000);
+    cv::namedWindow("ROI Controls", cv::WINDOW_NORMAL);
+    cv::resizeWindow("ROI Controls", 300, 70); 
+    cv::moveWindow("ROI Controls", 60, 100);
+    cv::createTrackbar("X", "ROI Controls", nullptr, 1000);
+    cv::createTrackbar("Y", "ROI Controls", nullptr, 1000);
+    cv::createTrackbar("WIDTH", "ROI Controls", nullptr, 1000);
+    cv::createTrackbar("HEIGHT", "ROI Controls", nullptr, 1000);
+
+    cv::setTrackbarPos("X", "ROI Controls", x);
+    cv::setTrackbarPos("Y", "ROI Controls", y);
+    cv::setTrackbarPos("WIDTH", "ROI Controls", w);
+    cv::setTrackbarPos("HEIGHT", "ROI Controls", h);
     tracker.setBackground(frame);
     while (true) {
+        x = cv::getTrackbarPos("X", "ROI Controls");
+        y = cv::getTrackbarPos("Y", "ROI Controls");
+        w = cv::getTrackbarPos("WIDTH", "ROI Controls");
+        h = cv::getTrackbarPos("HEIGHT", "ROI Controls");
         // Clamp trackbar values to valid ranges
         x = std::max(0, std::min(x, frameWidth - 1));
         y = std::max(0, std::min(y, frameHeight - 1));
@@ -60,10 +71,10 @@ int main() {
         }
         if (key == 109) { //'m' to toggle mode
             if (tracker.getMode() == 0) {
-                tracker.setMode(1);
+                cv::setTrackbarPos("Mode", "Controls", 1);
             }
             else {
-                tracker.setMode(0);
+                cv::setTrackbarPos("Mode", "Controls", 0);
             }
         }
     }

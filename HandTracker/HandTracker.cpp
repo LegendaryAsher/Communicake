@@ -3,8 +3,9 @@
 
 HandTracker::HandTracker()
     : SENSIB(20), fingertip_to_centroid_distance(100),
-    hmin(0), smin(0), vmin(82), hmax(255), smax(36), vmax(255), mode(0),
-    width(300), height(300), roi(300, 70, width, height), number_of_fingers(0), isHsvWindowOpen(false) {} //default constructor
+    hmin(0), smin(0), vmin(0), hmax(255), smax(255), vmax(255), mode(0),
+    width(300), height(300), roi(10, 10, width, height), number_of_fingers(0), isHsvWindowOpen(false) {
+} //default constructor
 
 cv::Rect HandTracker::currentRoi() {
     return roi;
@@ -50,9 +51,6 @@ void HandTracker::setBackground(const cv::Mat& frame) {
     background = background(roi);
 }
 
-void HandTracker::setMode(int newMode) {
-    mode = newMode;
-}
 
 int HandTracker::getMode() {
     return mode;
@@ -87,22 +85,36 @@ void HandTracker::hsvMode(cv::Mat& frame) {
 void HandTracker::controlTrackbars() {
     cv::namedWindow("Controls", cv::WINDOW_NORMAL);
     cv::resizeWindow("Controls", 300, 70);
-    cv::createTrackbar("Mode", "Controls", &mode, 1);
-    cv::createTrackbar("Sens", "Controls", &SENSIB, 255);
-    cv::createTrackbar("Finger D", "Controls", &fingertip_to_centroid_distance, 150);
+    cv::moveWindow("Controls", 400, 100);
+    cv::createTrackbar("Mode", "Controls", nullptr, 1);
+    cv::createTrackbar("Sens", "Controls", nullptr, 255);
+    cv::createTrackbar("Finger D", "Controls", nullptr, 255);
+
+    cv::setTrackbarPos("Mode", "Controls", mode);
+    cv::setTrackbarPos("Sens", "Controls", SENSIB);
+    cv::setTrackbarPos("Finger D", "Controls", fingertip_to_centroid_distance);
 }
 
 void HandTracker::hsvTrackbars() {
     //Trackers for hsv color detection
     if (!isHsvWindowOpen)
     {
-        cv::namedWindow("HSV VALUES", cv::WINDOW_AUTOSIZE);
-        cv::createTrackbar("HMIN", "HSV VALUES", &hmin, 255);
-        cv::createTrackbar("SMIN", "HSV VALUES", &smin, 255);
-        cv::createTrackbar("VMIN", "HSV VALUES", &vmin, 255);
-        cv::createTrackbar("HMAX", "HSV VALUES", &hmax, 255);
-        cv::createTrackbar("SMAX", "HSV VALUES", &smax, 255);
-        cv::createTrackbar("VMAX", "HSV VALUES", &vmax, 255);
+        cv::namedWindow("HSV VALUES", cv::WINDOW_NORMAL);
+        cv::resizeWindow("HSV VALUES", 300, 70);
+        cv::moveWindow("HSV VALUES", 500, 100);
+        cv::createTrackbar("HMIN", "HSV VALUES", nullptr, 255);
+        cv::createTrackbar("SMIN", "HSV VALUES", nullptr, 255);
+        cv::createTrackbar("VMIN", "HSV VALUES", nullptr, 255);
+        cv::createTrackbar("HMAX", "HSV VALUES", nullptr, 255);
+        cv::createTrackbar("SMAX", "HSV VALUES", nullptr, 255);
+        cv::createTrackbar("VMAX", "HSV VALUES", nullptr, 255);
+
+        cv::setTrackbarPos("HMIN", "HSV VALUES", hmin);
+        cv::setTrackbarPos("HMAX", "HSV VALUES", hmax);
+        cv::setTrackbarPos("SMIN", "HSV VALUES", smin);
+        cv::setTrackbarPos("SMAX", "HSV VALUES", smax);
+        cv::setTrackbarPos("VMIN", "HSV VALUES", vmin);
+        cv::setTrackbarPos("VMAX", "HSV VALUES", vmax);
 
         isHsvWindowOpen = true;
     }
@@ -125,6 +137,18 @@ int HandTracker::get_number_of_fingertips() {
 }
 
 void HandTracker::processFrame(cv::Mat& frame) {
+    mode = cv::getTrackbarPos("Mode", "Controls");
+    SENSIB = cv::getTrackbarPos("Sens", "Controls");
+    fingertip_to_centroid_distance = cv::getTrackbarPos("Finger D", "Controls");
+
+    if (isHsvWindowOpen) {
+        hmin = cv::getTrackbarPos("HMIN", "HSV VALUES");
+        hmax = cv::getTrackbarPos("HMAX", "HSV VALUES");
+        smin = cv::getTrackbarPos("SMIN", "HSV VALUES");
+        smax = cv::getTrackbarPos("SMAX", "HSV VALUES");
+        vmin = cv::getTrackbarPos("VMIN", "HSV VALUES");
+        vmax = cv::getTrackbarPos("VMAX", "HSV VALUES");
+    }
     cv::Mat mask, drawing;
     std::string toPut = "";
     frame.copyTo(mask);
@@ -168,7 +192,7 @@ void HandTracker::processFrame(cv::Mat& frame) {
                 toPut = "One";
                 break;
             case 2:
-                toPut = "Peace!/Two";
+                distance(fingertips[0], fingertips[1]) < 120 ? toPut = "PEACE!!" : toPut = "Two";
                 break;
             case 3:
                 toPut = "Three";
@@ -177,19 +201,25 @@ void HandTracker::processFrame(cv::Mat& frame) {
                 toPut = "Four";
                 break;
             case 5:
-                toPut = "Hello";
+                toPut = "HELLO!!";
                 break;
             case 0:
-                toPut = "Fist";
+                toPut = "FIST!!";
                 break;
             default:
                 return;
             }
-            cv::putText(frame, toPut, cv::Point(100, 70), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 2, 2), 4);
+            cv::putText(frame, toPut, cv::Point(10, 460), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 3);
         }
     }
+    cv::namedWindow("Mask");
+    cv::moveWindow("Mask", 400, 400);
     cv::imshow("Mask", mask);
-    cv::imshow("Orignal", frame);
+    cv::namedWindow("Original");
+    cv::moveWindow("Original", 800, 100);
+    cv::imshow("Original", frame);
+    cv::namedWindow("ROI");
+    cv::moveWindow("ROI", 60, 400);
     cv::imshow("ROI", drawing);
 }
 

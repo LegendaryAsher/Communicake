@@ -15,7 +15,6 @@ public:
     HandTracker();
     void processFrame(cv::Mat& frame);
     void setBackground(const cv::Mat& frame);
-    void setMode(int mode);
     void controlTrackbars();
     void hsvTrackbars();
     void set_number_of_fingertips(int fingers);
