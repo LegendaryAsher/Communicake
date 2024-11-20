@@ -71,11 +71,9 @@ int main() {
         }
         if (key == 109) { //'m' to toggle mode
             if (tracker.getMode() == 0) {
-                tracker.setMode(1);
                 cv::setTrackbarPos("Mode", "Controls", 1);
             }
             else {
-                tracker.setMode(0);
                 cv::setTrackbarPos("Mode", "Controls", 0);
             }
         }

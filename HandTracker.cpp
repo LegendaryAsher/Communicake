@@ -51,9 +51,6 @@ void HandTracker::setBackground(const cv::Mat& frame) {
     background = background(roi);
 }
 
-void HandTracker::setMode(int newMode) {
-    mode = newMode;
-}
 
 int HandTracker::getMode() {
     return mode;
