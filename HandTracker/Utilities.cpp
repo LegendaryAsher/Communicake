@@ -1,4 +1,4 @@
-#include "Utilities.hpp" //"" loads the files from folders we specified: here we means visual studio
+#include "Utilities.hpp"
 #include <cmath>
 
 float distance(const cv::Point& a, const cv::Point& b) {

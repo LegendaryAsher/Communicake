@@ -10,11 +10,13 @@ int main() {
     HandTracker tracker;
     int x = tracker.currentRoi().x, y = tracker.currentRoi().y;
     int w = tracker.currentRoi().width, h = tracker.currentRoi().height;
-    
+
     cv::Mat frame;
 
     //creating trackers for thresholding controls and hsv values controls
     tracker.controlTrackbars();
+    tracker.hsvTrackbars();
+
     cam >> frame;
     cv::flip(frame, frame, 1);
     int frameWidth = frame.cols;
@@ -32,7 +34,7 @@ int main() {
     //after resetting background the dimension will match then absdiff will always be called
 
     tracker.setBackground(frame);
-    
+
     while (true) {
         // Clamp trackbar values to valid ranges
         x = std::max(0, std::min(x, frameWidth - 1));
@@ -40,16 +42,6 @@ int main() {
         w = std::max(1, std::min(w, frameWidth - x));
         h = std::max(1, std::min(h, frameHeight - y));
         tracker.changeRoi(x, y, w, h);
-
-        if (tracker.getMode() == 1) {
-            tracker.hsvTrackbars();
-        }
-        else {
-            if (tracker.currentHsvWindow()) {
-                cv::destroyWindow("HSV VALUES");
-                tracker.changeHsvWindow(false);
-            }
-        }
 
         cam >> frame;
         if (frame.empty()) break;
@@ -62,14 +54,16 @@ int main() {
             if (frame.empty()) {
                 return -1;
             }
-            tracker.setBackground(frame); 
+            tracker.setBackground(frame);
         }
         if (key == 109) { //'m' to toggle mode
             if (tracker.getMode() == 0) {
                 tracker.setMode(1);
+                tracker.hsvTrackbars();
             }
-            else {
+            else if (tracker.getMode() == 1) {
                 tracker.setMode(0);
+                cv::destroyWindow("HSV VALUES");
             }
         }
         if (key == 114) { //'r' to get current roi dimensions

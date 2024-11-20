@@ -2,9 +2,9 @@
 #include "Utilities.hpp"
 
 HandTracker::HandTracker()
-    : SENSIB(20), MAX_ANGLE(90), depth_threshold(10), fingertip_to_centroid_distance(100),
+    : SENSIB(20), MAX_ANGLE(90), depth_threshold(10), fingertip_to_centroid_distance(65),
     hmin(0), smin(0), vmin(82), hmax(255), smax(36), vmax(255), mode(0),
-    width(300), height(300), roi(300, 70, width, height), number_of_fingers(0), isHsvWindowOpen(false) {} //default constructor
+    width(300), height(300), roi(300, 70, width, height), number_of_fingers(0) {} //default constructor
 
 cv::Rect HandTracker::currentRoi() {
     return roi;
@@ -45,45 +45,6 @@ void HandTracker::findFingertips(std::vector < cv::Point >& points, std::vector<
     cv::putText(img, std::to_string(points.size()), cv::Point(25, 25), cv::FONT_HERSHEY_COMPLEX, 0.75, cv::Scalar(255, 0, 255), 2);
 }
 
-void HandTracker::drawDefects(std::vector<cv::Point> contour, cv::Mat& img) {
-    if (contour.empty()) return; //exit the function when empty
-
-//this code crashes if in mode 1 hence we have try catch block so that even when it gives error it continues to run
-//this is probably due to not finding anything in defects to draw 
-//so drawContour must be the one giving error
-//the error was due to convexityDefects function, the error in question:
-/*  
-    Bad argument(The convex hull indices are not monotonous,
-    which can be in the case when the input contour contains 
-    self-intersections) in cv::convexityDefects 
-*/
-//this error can be solved by using the function isContourConvex() meaning is the contour simple?(simple meaning no self-intersections)
-    std::vector<int> hullIndices;
-    cv::convexHull(contour, hullIndices, false, false);
-    std::vector<cv::Vec4i> defects;
-    if (!contour.empty() && hullIndices.size() > 3) {
-        try {
-            if (cv::isContourConvex(contour)) { //if no self-intersections
-                cv::convexityDefects(contour, hullIndices, defects);
-            }
-        }
-        catch (const cv::Exception& e) {
-            std::cerr << "OpenCV Exception in cv::convexityDefects: " << e.what() << std::endl;
-        }
-    }
-    for (const auto& defect : defects) {
-        cv::Point start = contour[defect[0]];
-        cv::Point end = contour[defect[1]];
-        cv::Point depth_point = contour[defect[2]];
-        float depth = defect[3] / 256.0;
-
-        // Filtering based on defect depth and position
-        if (depth > depth_threshold) {
-            cv::circle(img, depth_point, 5, cv::Scalar(255, 0, 0), -1);  // Marking defect points
-        }
-    }
-}
-
 void HandTracker::setBackground(const cv::Mat& frame) {
     frame.copyTo(background);
     background = background(roi);
@@ -96,7 +57,6 @@ void HandTracker::setMode(int newMode) {
 int HandTracker::getMode() {
     return mode;
 }
-
 void HandTracker::binaryMode(cv::Mat& frame) {
     cv::Mat bg;
     background.copyTo(bg);
@@ -106,15 +66,14 @@ void HandTracker::binaryMode(cv::Mat& frame) {
     cv::GaussianBlur(frame, frame, cv::Size(5, 5), 0);
     cv::GaussianBlur(bg, bg, cv::Size(5, 5), 0);
 
-    if (frame.cols == bg.cols && frame.rows == bg.rows) //checking dimensions match or not
-    {
+    if (frame.cols == bg.cols && frame.rows == bg.rows) {
         cv::absdiff(frame, bg, frame);
     }
 
     cv::threshold(frame, frame, SENSIB, 255, cv::THRESH_BINARY);
 
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
-    cv::morphologyEx(frame, frame, cv::MORPH_OPEN, kernel); //erosion followed by dilate
+    cv::morphologyEx(frame, frame, cv::MORPH_OPEN, kernel);
 }
 
 void HandTracker::hsvMode(cv::Mat& frame) {
@@ -124,35 +83,25 @@ void HandTracker::hsvMode(cv::Mat& frame) {
 
 void HandTracker::controlTrackbars() {
     cv::namedWindow("Controls", cv::WINDOW_AUTOSIZE);
-    cv::createTrackbar("Mode", "Controls", &mode, 1);
+    cv::createTrackbar("Mode", "Controls", &mode, 2);
     cv::createTrackbar("Sensitivity", "Controls", &SENSIB, 255);
     cv::createTrackbar("Depth Threshold", "Controls", &depth_threshold, 255);
     cv::createTrackbar("MAX ANGLE", "Controls", &MAX_ANGLE, 255);
     cv::createTrackbar("Fingertip Distance", "Controls", &fingertip_to_centroid_distance, 255);
+
+    //if(HandTracker::getMode() == 1)
 }
 
 void HandTracker::hsvTrackbars() {
     //Trackers for hsv color detection
-    if(!isHsvWindowOpen) 
-    {
-        cv::namedWindow("HSV VALUES", cv::WINDOW_AUTOSIZE);
-        cv::createTrackbar("HMIN", "HSV VALUES", &hmin, 255);
-        cv::createTrackbar("SMIN", "HSV VALUES", &smin, 255);
-        cv::createTrackbar("VMIN", "HSV VALUES", &vmin, 255);
-        cv::createTrackbar("HMAX", "HSV VALUES", &hmax, 255);
-        cv::createTrackbar("SMAX", "HSV VALUES", &smax, 255);
-        cv::createTrackbar("VMAX", "HSV VALUES", &vmax, 255);
-
-        isHsvWindowOpen = true;
-    }
-}
-
-bool HandTracker::currentHsvWindow() {
-    return isHsvWindowOpen;
-}
-
-void HandTracker::changeHsvWindow(bool a) {
-    isHsvWindowOpen = a;
+    cv::namedWindow("HSV VALUES", cv::WINDOW_AUTOSIZE);
+    cv::createTrackbar("HMIN", "HSV VALUES", &hmin, 255);
+    cv::createTrackbar("SMIN", "HSV VALUES", &smin, 255);
+    cv::createTrackbar("VMIN", "HSV VALUES", &vmin, 255);
+    cv::createTrackbar("HMAX", "HSV VALUES", &hmax, 255);
+    cv::createTrackbar("SMAX", "HSV VALUES", &smax, 255);
+    cv::createTrackbar("VMAX", "HSV VALUES", &vmax, 255);
+    
 }
 
 void HandTracker::set_number_of_fingertips(int fingers) {
@@ -162,10 +111,15 @@ void HandTracker::set_number_of_fingertips(int fingers) {
 int HandTracker::get_number_of_fingertips() {
     return number_of_fingers;
 }
+void HandTracker::mog2Mode(cv::Mat& im) {
+    cv::Ptr< cv::BackgroundSubtractor> pMOG2;
+    pMOG2 = cv::createBackgroundSubtractorMOG2();
 
+    pMOG2->apply(im, im);
+}
 void HandTracker::processFrame(cv::Mat& frame) {
     cv::Mat mask, drawing;
-    std::string toPut;
+
     frame.copyTo(mask);
     mask = mask(roi);
     mask.copyTo(drawing);
@@ -173,9 +127,12 @@ void HandTracker::processFrame(cv::Mat& frame) {
     if (mode == 0) {
         binaryMode(mask);
     }
-    else if(mode == 1) {
+    else if (mode == 1) {
         hsvMode(mask);
-    } 
+    }
+    else {
+        mog2Mode(mask);
+    }
 
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;
@@ -202,30 +159,6 @@ void HandTracker::processFrame(cv::Mat& frame) {
             //finding fingertips point and pusing it into fingertips vector and drawing them and does some stuff ^_^
             findFingertips(fingertips, hull, drawing, centroid);
             set_number_of_fingertips(fingertips.size());
-            switch (fingertips.size()) {
-            case 1:
-                toPut = "its a 1 right?";
-                break;
-            case 2:
-                toPut = "Peace!";
-                break;
-            case 3:
-                toPut = "maybe 3?";
-                break;
-            case 4:
-                toPut = "4?";
-                break;
-            case 5:
-                toPut = "Well Hello there";
-                break;
-            case 0:
-                toPut = "Fisting huh!";
-                break;
-            }
-            cv::putText(frame, toPut, cv::Point(100, 70), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 2, 2));
-            //drawing depth points of defects
-            drawDefects(contours[largestContourIndex], drawing);
-            //findFingertipsUsingDefects(defects, contours[largestContourIndex], centroid, img);
         }
     }
     cv::imshow("Mask", mask);
