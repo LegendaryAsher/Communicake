@@ -1,6 +1,9 @@
 #include "HandTracker.hpp" 
+#include <cstdlib>
+#include <algorithm>
 
 int main() {
+    std::cout << "Communicake - Communication made a piece of cake\nConnecting to the video capturing media, Please wait.....";
     cv::VideoCapture cam(0);
     if (!cam.isOpened()) {
         std::cerr << "ERROR: Unable to open camera\n";
@@ -22,7 +25,7 @@ int main() {
 
     //ROI Controls
     cv::namedWindow("ROI Controls", cv::WINDOW_NORMAL);
-    cv::resizeWindow("ROI Controls", 300, 70); 
+    cv::resizeWindow("ROI Controls", 300, 70);
     cv::moveWindow("ROI Controls", 60, 100);
     cv::createTrackbar("X", "ROI Controls", nullptr, 1000);
     cv::createTrackbar("Y", "ROI Controls", nullptr, 1000);
@@ -39,7 +42,7 @@ int main() {
         y = cv::getTrackbarPos("Y", "ROI Controls");
         w = cv::getTrackbarPos("WIDTH", "ROI Controls");
         h = cv::getTrackbarPos("HEIGHT", "ROI Controls");
-        // Clamp trackbar values to valid ranges
+        //Clamp trackbar values to valid ranges
         x = std::max(0, std::min(x, frameWidth - 1));
         y = std::max(0, std::min(y, frameHeight - 1));
         w = std::max(1, std::min(w, frameWidth - x));
@@ -77,8 +80,24 @@ int main() {
                 cv::setTrackbarPos("Mode", "Controls", 0);
             }
         }
+        if (key == 99) { // 'c' to capture the frame, get no. of fingers and open a particular app 
+            if (tracker.get_number_of_fingertips() == 1) {
+                system("code");
+            }
+            if (tracker.get_number_of_fingertips() == 2) {
+                system("notepad");
+            }
+            if (tracker.get_number_of_fingertips() == 3) {
+                system("start chrome");
+            }
+            if (tracker.get_number_of_fingertips() == 4) {
+                system("start spotify");
+            }
+            if (tracker.get_number_of_fingertips() == 5) {
+                system("calc");
+            }
+        }
     }
-    std::cout << tracker.get_number_of_fingertips() << std::endl;
     //cleaning up
     cam.release();
     cv::destroyAllWindows();

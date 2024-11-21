@@ -21,7 +21,7 @@ void HandTracker::changeRoi(int x, int y, int w, int h) {
 void HandTracker::findFingertips(std::vector < cv::Point >& points, std::vector<cv::Point> hull, cv::Mat& img, cv::Point centroid) {
     for (int k = 0; k < hull.size(); ++k)
     {
-        if (centroid.y + 20 > hull[k].y && distance(hull[k], centroid) > fingertip_to_centroid_distance && distance(hull[k], hull[(k + 1) % hull.size()]) > 30)
+        if (centroid.y + 20 > hull[k].y && distance(hull[k], centroid) > fingertip_to_centroid_distance && distance(hull[k], hull[(k + 1) % hull.size()]) > 35)
         {
             points.push_back(hull[k]);
         }
@@ -87,8 +87,8 @@ void HandTracker::controlTrackbars() {
     cv::resizeWindow("Controls", 300, 70);
     cv::moveWindow("Controls", 400, 100);
     cv::createTrackbar("Mode", "Controls", nullptr, 1);
-    cv::createTrackbar("Sens", "Controls", nullptr, 255);
-    cv::createTrackbar("Finger D", "Controls", nullptr, 255);
+    cv::createTrackbar("Sens", "Controls", nullptr, 50);
+    cv::createTrackbar("Finger D", "Controls", nullptr, 130);
 
     cv::setTrackbarPos("Mode", "Controls", mode);
     cv::setTrackbarPos("Sens", "Controls", SENSIB);
@@ -192,7 +192,7 @@ void HandTracker::processFrame(cv::Mat& frame) {
                 toPut = "One";
                 break;
             case 2:
-                distance(fingertips[0], fingertips[1]) < 120 ? toPut = "PEACE!!" : toPut = "Two";
+                distance(fingertips[0], fingertips[1]) < 122 ? toPut = "PEACE!!" : toPut = "Two";
                 break;
             case 3:
                 toPut = "Three";
